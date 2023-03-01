@@ -1,13 +1,17 @@
 {
-    "name": "lorenzo/cakephp-logstash",
-    "description": "CakePHP logstash log stream",
+    "name": "jasanchez/cakephp-logstash",
+    "description": "CakePHP logstash log http",
     "type": "cakephp-plugin",
     "keywords": ["cakephp", "log", "logstash"],
-    "homepage": "https://github.com/lorenzo/cakephp-logstash",
+    "homepage": "https://github.com/jasanchez/cakephp-logstash",
     "license": "MIT",
     "authors": [
         {
             "name": "José Lorenzo Rodríguez",
+            "role": "Author"
+        },
+        {
+            "name": "Jose Antonio Sanchez",
             "role": "Author"
         }
     ],

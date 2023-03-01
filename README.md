@@ -13,7 +13,7 @@ The only installation method supported by this plugin is by using composer. Just
 
 	{
 	  "require" : {
-		"lorenzo/cakephp-logstash": "master"
+		"jasanchez/cakephp-logstash": "master"
 	  }
 	}
 
@@ -27,8 +27,7 @@ Finally add a new logging stream in the same file:
 
 	CakeLog::config('debug', array(
 		'engine' => 'Logstash.LogstashLog',
-		'types' => array('list', 'of', 'type', 'to', 'log'),
-		'host' => 'tcp://127.0.0.1', // Set it to the real host works with udp too
-		'port' => 2020, // Set it to the actual port
+		'types' => array('notice', 'info', 'debug','warning', 'error', 'critical', 'alert', 'emergency'),
+		'host' => 'http://complete-url', // Set it to the real host works with udp too
 		'timeout' => 5 // Connection timeout
 	));

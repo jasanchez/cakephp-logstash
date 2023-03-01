@@ -3,7 +3,7 @@
 App::uses('BaseLog', 'Log/Engine');
 
 /**
- * A Log stream that will write messages directly to logstash
+ * A Log stream that will write messages directly to logstash http input
  * in json format
  *
  */
@@ -15,16 +15,8 @@ class LogstashLog extends BaseLog {
  * @var array
  */
 	protected $_config = array(
-		'host' => null,
-		'port' => null
+		'host' => null
 	);
-
-/**
- * The resource for connecting to the logstash server
- *
- * @var resource
- */
-	protected $_handle;
 
 /**
  * Encodes a message and logs it directly to logstash
@@ -35,16 +27,15 @@ class LogstashLog extends BaseLog {
  */
 	public function write($type, $message) {
 		$log = array(
-			'@timestamp' => gmdate('c'),
-			'@type' => $type,
+			'@event.type' => $type,
 		);
 
 		if (is_string($message)) {
 			$log['@message'] = $message;
 		} else {
-			$log['@fields'] = (array)$message;
+			$log['@fields'] =json_encode($message);
 		}
-
+        
 		$log = json_encode($log);
 		
 		// Ensure utf-8 encoding
@@ -52,10 +43,7 @@ class LogstashLog extends BaseLog {
 			$log = utf8_encode($log);
 		}
 
-		if ($this->_write($log) === false) {
-			$this->_close();
-			$this->_write($log);
-		}
+		return $this->_post_async($this->_config['host'],$log);
 	}
 
 /**
@@ -76,49 +64,36 @@ class LogstashLog extends BaseLog {
 	}
 
 /**
- * Opens a connection to logstash
+ * Creates a connection to send HTTP POST to the URL defined in the configuration
  *
- * @return resource
+ * @param string $url
+ * @param string $body
+ * @return boolean
  */
-	protected function _open($host, $port, $timeout) {
-		$handle = pfsockopen($host, $port, $errNo, $errSt, $timeout);
-		return $handle;
-	}
+	function _post_async($url, $body)
+	{
 
-/**
- * Writes a message to logstash
- *
- * @param string message
- * @return boolean false if there is no connection to logstash
- */
-	protected function _write($message) {
-		if (!$this->_handle) {
-			$this->_handle = $this->_open($this->_config['host'], $this->_config['port'], $this->_config['timeout']);
-			if ($this->_handle === false) {
-				throw new SocketException('Could not connect to logstash');
-			}
-		}
-		return @fwrite($this->_handle, $message);
-	}
+		try{
+			// Connect to server
+			$parts=parse_url($url);
+			$fp = fsockopen($parts['host'],isset($parts['port'])?$parts['port']:80,$errno, $errstr,$this->_config['timeout']);
 
-/**
- * Closes the connection to logstash
- *
- * @return void
- */
-	protected function _close() {
-		@fclose($this->_handle);
-		$this->_handle = null;
-	}
+			// Build HTTP query             
+			$out = "POST ".(isset($parts['path'])?$parts['path']:"/")." HTTP/1.1\r\n";
+			$out.= "Host: ".$parts['host']."\r\n";
+			$out.= "Content-Type: application/json\r\n";
+			$out.= "Content-Length: ".strlen($body)."\r\n";
+			$out.= "Connection: Close\r\n\r\n";
+			$out.= $body;
 
-/**
- * Flushes the buffer handle before destroying this object
- *
- * @return void
- */
-	public function __destruct() {
-		if ($this->_handle) {
-			@fflush($this->_handle);
+			// Send data and close the connection
+			fwrite($fp, $out);
+			fclose($fp);
+			
+			return true;
+
+		}catch (Exception $e) {
+			return false;
 		}
 	}
 
